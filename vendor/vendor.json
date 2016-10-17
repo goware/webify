@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "test appengine",
+	"package": [
+		{
+			"checksumSHA1": "xYqm+W2xO9uN2+JxUbRRHKcbels=",
+			"path": "github.com/pressly/chi",
+			"revision": "2cad94402baa6eb7584258df02fed068f1502ada",
+			"revisionTime": "2016-10-07T19:28:15Z"
+		},
+		{
+			"checksumSHA1": "5GrWdfMYfdK+48EfMNw1oW4oLjE=",
+			"path": "github.com/pressly/chi/middleware",
+			"revision": "2cad94402baa6eb7584258df02fed068f1502ada",
+			"revisionTime": "2016-10-07T19:28:15Z"
+		}
+	],
+	"rootPath": "github.com/goware/webify"
+}
