@@ -19,6 +19,8 @@ func (mws Middlewares) HandlerFunc(h http.HandlerFunc) http.Handler {
 	return &ChainHandler{mws, h, chain(mws, h)}
 }
 
+// ChainHandler is a http.Handler with support for handler composition and
+// execution.
 type ChainHandler struct {
 	Middlewares Middlewares
 	Endpoint    http.Handler
@@ -33,7 +35,7 @@ func (c *ChainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handler in the order they are passed.
 func chain(middlewares []func(http.Handler) http.Handler, endpoint http.Handler) http.Handler {
 	// Return ahead of time if there aren't any middlewares for the chain
-	if middlewares == nil || len(middlewares) == 0 {
+	if len(middlewares) == 0 {
 		return endpoint
 	}
 

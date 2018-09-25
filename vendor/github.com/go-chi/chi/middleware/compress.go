@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"bufio"
 	"compress/flate"
 	"compress/gzip"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -25,7 +28,7 @@ var defaultContentTypes = map[string]struct{}{
 	"application/x-javascript": struct{}{},
 	"application/json":         struct{}{},
 	"application/atom+xml":     struct{}{},
-	"application/rss+xml ":     struct{}{},
+	"application/rss+xml":      struct{}{},
 }
 
 // DefaultCompress is a middleware that compresses response
@@ -130,6 +133,8 @@ func (w *maybeCompressResponseWriter) WriteHeader(code int) {
 	if w.ResponseWriter.Header().Get("Content-Encoding") != "" {
 		return
 	}
+	// The content-length after compression is unknown
+	w.ResponseWriter.Header().Del("Content-Length")
 
 	// Parse the first part of the Content-Type response header.
 	contentType := ""
@@ -179,9 +184,29 @@ func (w *maybeCompressResponseWriter) Flush() {
 	}
 }
 
+func (w *maybeCompressResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := w.w.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+	return nil, nil, errors.New("chi/middleware: http.Hijacker is unavailable on the writer")
+}
+
+func (w *maybeCompressResponseWriter) CloseNotify() <-chan bool {
+	if cn, ok := w.w.(http.CloseNotifier); ok {
+		return cn.CloseNotify()
+	}
+
+	// If the underlying writer does not implement http.CloseNotifier, return
+	// a channel that never receives a value. The semantics here is that the
+	// client never disconnnects before the request is processed by the
+	// http.Handler, which is close enough to the default behavior (when
+	// CloseNotify() is not even called).
+	return make(chan bool, 1)
+}
+
 func (w *maybeCompressResponseWriter) Close() error {
 	if c, ok := w.w.(io.WriteCloser); ok {
 		return c.Close()
 	}
-	return nil
+	return errors.New("chi/middleware: io.WriteCloser is unavailable on the writer")
 }

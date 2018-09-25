@@ -1,28 +1,33 @@
 package middleware
 
-// Ported from Goji's middleware, source:
+// The original work was derived from Goji's middleware, source:
 // https://github.com/zenazn/goji/tree/master/web/middleware
 
 import (
-	"bytes"
-	"log"
+	"fmt"
 	"net/http"
+	"os"
 	"runtime/debug"
 )
 
 // Recoverer is a middleware that recovers from panics, logs the panic (and a
 // backtrace), and returns a HTTP 500 (Internal Server Error) status if
-// possible.
+// possible. Recoverer prints a request ID if one is provided.
 //
-// Recoverer prints a request ID if one is provided.
+// Alternatively, look at https://github.com/pressly/lg middleware pkgs.
 func Recoverer(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
-			if err := recover(); err != nil {
-				reqID := GetReqID(r.Context())
-				prefix := requestPrefix(reqID, r)
-				printPanic(prefix, reqID, err)
-				debug.PrintStack()
+			if rvr := recover(); rvr != nil {
+
+				logEntry := GetLogEntry(r)
+				if logEntry != nil {
+					logEntry.Panic(rvr, debug.Stack())
+				} else {
+					fmt.Fprintf(os.Stderr, "Panic: %+v\n", rvr)
+					debug.PrintStack()
+				}
+
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
 		}()
@@ -31,9 +36,4 @@ func Recoverer(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(fn)
-}
-
-func printPanic(buf *bytes.Buffer, reqID string, err interface{}) {
-	cW(buf, bRed, "panic: %+v", err)
-	log.Print(buf.String())
 }
