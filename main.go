@@ -34,6 +34,11 @@ func main() {
 	fmt.Printf("================================================================================\n")
 	fmt.Printf("Serving:  %s\n", *dir)
 	fmt.Printf("URL:      http://%s\n", addr)
+	if *cache {
+		fmt.Printf("Cache:    on\n")
+	} else {
+		fmt.Printf("Cache:    off\n")
+	}
 	fmt.Printf("================================================================================\n")
 	fmt.Printf("\n")
 
