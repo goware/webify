@@ -17,6 +17,7 @@ var (
 	port  = flags.String("port", "3000", "http server port")
 	host  = flags.String("host", "0.0.0.0", "http server hostname")
 	dir   = flags.String("dir", ".", "directory to serve")
+	cache = flags.Bool("cache", false, "enable Cache-Control for content")
 )
 
 func main() {
@@ -41,7 +42,12 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.NoCache)
+
+	if *cache {
+		r.Use(CacheControl)
+	} else {
+		r.Use(middleware.NoCache)
+	}
 
 	cors := cors.New(cors.Options{
 		// AllowedOrigins: []string{"https://foo.com"}, // Use this to allow specific origin hosts
@@ -81,7 +87,17 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	}
 	path += "*"
 
+	r.Head(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fs.ServeHTTP(w, r)
+	}))
 	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	}))
+}
+
+func CacheControl(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "max-age=31536000")
+		h.ServeHTTP(w, r)
+	})
 }
