@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-chi/chi"
@@ -25,9 +26,17 @@ func main() {
 
 	// Setup params
 	addr := fmt.Sprintf("%s:%s", *host, *port)
+	cwd, _ := os.Getwd()
 	if *dir == "" || *dir == "." {
-		cwd, _ := os.Getwd()
 		*dir = cwd
+	} else {
+		if (*dir)[0:1] != "/" {
+			*dir = filepath.Join(cwd, *dir)
+		}
+		if _, err := os.Stat(*dir); os.IsNotExist(err) {
+			fmt.Printf("Error: %s\n", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	// Print banner
@@ -66,8 +75,7 @@ func main() {
 	})
 	r.Use(cors.Handler)
 
-	workDir, _ := os.Getwd()
-	FileServer(r, "/", http.Dir(workDir))
+	FileServer(r, "/", http.Dir(*dir))
 
 	// Serve it up!
 	err := http.ListenAndServe(addr, r)
