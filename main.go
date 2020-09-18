@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httplog"
 )
 
 var (
@@ -19,6 +20,7 @@ var (
 	host  = flags.String("host", "0.0.0.0", "http server hostname")
 	dir   = flags.String("dir", ".", "directory to serve")
 	cache = flags.Bool("cache", false, "enable Cache-Control for content")
+	debug = flags.Bool("debug", false, "Debug mode, printing all network request details")
 )
 
 func main() {
@@ -51,11 +53,14 @@ func main() {
 	fmt.Printf("================================================================================\n")
 	fmt.Printf("\n")
 
+	logger := httplog.NewLogger("", httplog.Options{
+		JSON:    false,
+		Concise: !*debug,
+	})
+
 	// Setup http router with file server
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(httplog.RequestLogger(logger))
 
 	if *cache {
 		r.Use(CacheControl)
