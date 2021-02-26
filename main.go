@@ -55,12 +55,15 @@ func main() {
 
 	logger := httplog.NewLogger("", httplog.Options{
 		JSON:    false,
-		Concise: !*debug,
+		Concise: false,
 	})
 
 	// Setup http router with file server
 	r := chi.NewRouter()
 	r.Use(httplog.RequestLogger(logger))
+	if *debug {
+		r.Use(DebugLogger)
+	}
 
 	if *cache {
 		r.Use(CacheControl)
@@ -117,5 +120,35 @@ func CacheControl(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "max-age=31536000")
 		h.ServeHTTP(w, r)
+	})
+}
+
+func DebugLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		print := func(s string, v []string) {
+			fmt.Printf("=> %s: %v\n", s, v)
+		}
+
+		scheme := "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
+		requestURL := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.RequestURI)
+
+		fmt.Println("*** Debug, request headers:*")
+
+		print("URL", []string{requestURL})
+		print("Method", []string{r.Method})
+		print("Path", []string{r.URL.Path})
+		print("RemoteIP", []string{r.RemoteAddr})
+		print("Proto", []string{r.Proto})
+
+		for header, values := range r.Header {
+			print(header, values)
+		}
+
+		fmt.Println("***")
+
+		next.ServeHTTP(w, r)
 	})
 }
