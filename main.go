@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ var (
 	dir   = flags.String("dir", ".", "directory to serve")
 	cache = flags.Bool("cache", false, "enable Cache-Control for content")
 	debug = flags.Bool("debug", false, "Debug mode, printing all network request details")
+	echo  = flags.Bool("echo", false, "Echo back request body, useful for debugging")
 )
 
 func main() {
@@ -83,7 +85,11 @@ func main() {
 	})
 	r.Use(cors.Handler)
 
-	FileServer(r, "/", http.Dir(*dir))
+	if *echo {
+		r.HandleFunc("/*", echoHandler)
+	} else {
+		FileServer(r, "/", http.Dir(*dir))
+	}
 
 	// Serve it up!
 	err := http.ListenAndServe(addr, r)
@@ -147,8 +153,19 @@ func DebugLogger(next http.Handler) http.Handler {
 			print(header, values)
 		}
 
+		if *echo {
+			reqBody, _ := ioutil.ReadAll(r.Body)
+			print("Body", []string{string(reqBody)})
+		}
+
 		fmt.Println("***")
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func echoHandler(w http.ResponseWriter, r *http.Request) {
+	// body, _ := ioutil.ReadAll(r.Body)
+	w.WriteHeader(200)
+	w.Write([]byte(""))
 }
