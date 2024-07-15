@@ -9,6 +9,12 @@ Simply serve your current directory over HTTP.
 $ go install github.com/goware/webify@latest
 ```
 
+OR
+
+```shell
+$ go run github.com/goware/webify@latest -h
+```
+
 ```shell
 $ cd somepath/
 $ webify
