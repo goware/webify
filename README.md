@@ -6,7 +6,7 @@ Simply serve your current directory over HTTP.
 ## Install / Usage
 
 ```shell
-$ go get github.com/goware/webify
+$ go install github.com/goware/webify@latest
 ```
 
 ```shell
